@@ -3,6 +3,14 @@
  * @author	RubaXa   <trash@rubaxa.org>
  * @license MIT
  */
+ 
+ /**
+  * @modified by Terje <terje@symphonical.com>
+  *
+  * symphEl used as a ghost element.
+  * This ghost will prevent original dragged item to be inserted anywhere in the DOM
+  * Search this file for symphEl which is the only lines added. Sometimes the line above are commented out which was the original line
+  */
 
 
 (function (factory){
@@ -23,6 +31,7 @@
 	var
 		  dragEl
 		, ghostEl
+        , symphEl
 		, rootEl
 		, nextEl
 
@@ -282,8 +291,10 @@
 			var dataTransfer = evt.dataTransfer;
 
 			this._offUpEvents();
-
-			if( isTouch ){
+            
+            symphEl = dragEl.cloneNode(true);
+			
+            if( isTouch ){
 				var
 					  rect = dragEl.getBoundingClientRect()
 					, css = _css(dragEl)
@@ -333,10 +344,13 @@
 				;
 
 				if( el.children.length === 0 || el.children[0] === ghostEl || (el === evt.target) && _ghostInBottom(el, evt) ){
-					el.appendChild(dragEl);
+					// drag over empty container (no sort)
+                    //el.appendChild(dragEl);
+                    el.appendChild(symphEl);
 				}
 				else if( target && target !== dragEl && (target.parentNode[expando] !== void 0) ){
-					if( lastEl !== target ){
+					// drag over another task: sort
+                    if( lastEl !== target ){
 						lastEl = target;
 						lastCSS = _css(target);
 						lastRect = target.getBoundingClientRect();
@@ -348,8 +362,10 @@
 						, width = rect.right - rect.left
 						, height = rect.bottom - rect.top
 						, floating = /left|right|inline/.test(lastCSS.cssFloat + lastCSS.display)
-						, isWide = (target.offsetWidth > dragEl.offsetWidth)
-						, isLong = (target.offsetHeight > dragEl.offsetHeight)
+						//, isWide = (target.offsetWidth > dragEl.offsetWidth)
+                        , isWide = (target.offsetWidth > symphEl.offsetWidth)
+						//, isLong = (target.offsetHeight > dragEl.offsetHeight)
+                        , isLong = (target.offsetHeight > symphEl.offsetHeight)
 						, halfway = (floating ? (evt.clientX - rect.left)/width : (evt.clientY - rect.top)/height) > .5
 						, nextSibling = target.nextElementSibling
 						, after
@@ -359,15 +375,19 @@
 					setTimeout(_unsilent, 30);
 
 					if( floating ){
-						after = (target.previousElementSibling === dragEl) && !isWide || halfway && isWide
+						//after = (target.previousElementSibling === dragEl) && !isWide || halfway && isWide
+                        after = (target.previousElementSibling === symphEl) && !isWide || halfway && isWide
 					} else {
-						after = (nextSibling !== dragEl) && !isLong || halfway && isLong;
+						//after = (nextSibling !== dragEl) && !isLong || halfway && isLong;
+                        after = (nextSibling !== symphEl) && !isLong || halfway && isLong;
 					}
 
 					if( after && !nextSibling ){
-						el.appendChild(dragEl);
+						//el.appendChild(dragEl);
+                        el.appendChild(symphEl);
 					} else {
-						target.parentNode.insertBefore(dragEl, after ? nextSibling : target);
+                        //target.parentNode.insertBefore(dragEl, after ? nextSibling : target);
+                        target.parentNode.insertBefore(symphEl, after ? nextSibling : target);
 					}
 				}
 			}
@@ -400,13 +420,19 @@
 				if( ghostEl ){
 					ghostEl.parentNode.removeChild(ghostEl);
 				}
+                if( symphEl ) {
+                    _dispatchEvent(symphEl, 'add');
+                    if(symphEl && symphEl.parentNode) {
+                        symphEl.parentNode.removeChild(symphEl);
+                    } 
+                }
 
 				if( dragEl ){
-					_disableDraggable(dragEl);
+                    _disableDraggable(dragEl);
 					_toggleClass(dragEl, this.options.ghostClass, false);
 
 					if( !rootEl.contains(dragEl) ){
-						// Remove event
+                        // Remove event
 						_dispatchEvent(rootEl, 'remove', dragEl);
 
 						// Add event
@@ -421,7 +447,8 @@
 				}
 
 				// Set NULL
-				rootEl =
+				symphEl =
+                rootEl =
 				dragEl =
 				ghostEl =
 				nextEl =
